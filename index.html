@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora Idle</title>
+    <!-- Fonte moderna do Google -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Importando o Tesseract.js para ler a imagem -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(22, 33, 62, 0.7);
+            --gold: #facc15;
+            --gold-hover: #eab308;
+            --green: #4ade80;
+            --blue: #38bdf8;
+            --text-light: #f8fafc;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: radial-gradient(circle at top, #1a233a, var(--bg-color));
+            color: var(--text-light);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Animação de entrada do painel */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        h2 {
+            text-align: center;
+            margin-top: 0;
+            font-weight: 700;
+            color: var(--gold);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* Zona de Arrastar/Colar animada */
+        .drop-zone {
+            border: 2px dashed rgba(250, 204, 21, 0.4);
+            background: rgba(0, 0, 0, 0.2);
+            padding: 25px 20px;
+            text-align: center;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            color: #94a3b8;
+        }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--gold);
+            background: rgba(250, 204, 21, 0.05);
+            transform: scale(1.02);
+        }
+
+        .drop-zone b {
+            color: var(--gold);
+        }
+
+        #status-ocr {
+            display: block;
+            font-size: 12px;
+            color: var(--blue);
+            margin-top: 8px;
+            font-weight: 600;
+            min-height: 18px;
+        }
+
+        /* Inputs estilizados */
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #cbd5e1;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            font-size: 16px;
+            font-family: 'Poppins', sans-serif;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--gold);
+            box-shadow: 0 0 10px rgba(250, 204, 21, 0.2);
+        }
+
+        /* Botão dourado com efeito de pulso */
+        button {
+            background: linear-gradient(135deg, var(--gold), var(--gold-hover));
+            color: #451a03;
+            border: none;
+            padding: 14px 20px;
+            width: 100%;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(250, 204, 21, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(250, 204, 21, 0.4);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        /* Painel de Resultados animado */
+        .results {
+            margin-top: 25px;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(74, 222, 128, 0.2);
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.5s ease;
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .results p {
+            margin: 8px 0;
+            font-size: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 8px;
+        }
+
+        .results p:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .val-custo { color: #f87171; font-weight: 600; }
+        .val-bruto { color: var(--blue); font-weight: 600; }
+        .val-taxa { color: #facc15; font-weight: 600; }
+        
+        .destaque {
+            font-size: 18px;
+            color: var(--green);
+            font-weight: 700;
+            text-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
+        }
+        
+        .lucro-row {
+            margin-top: 15px !important;
+            padding-top: 15px !important;
+            border-top: 1px dashed rgba(255,255,255,0.2) !important;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Calculadora Idle</h2>
+    
+    <div class="drop-zone" id="drop-zone">
+        Arraste um recorte do preço aqui, ou clique e dê <b>CTRL+V</b>.<br>
+        <span id="status-ocr">Aguardando imagem...</span>
+    </div>
+
+    <div class="input-group">
+        <label for="diamond">💎 Valor de 1 Diamante (dollars):</label>
+        <input type="number" id="diamond" placeholder="Ex: 1045000">
+    </div>
+
+    <div class="input-group">
+        <label for="idleball">📦 Valor de Venda de 1 Idle Ball (dollars):</label>
+        <input type="number" id="idleball" placeholder="Ex: 7000">
+    </div>
+
+    <button onclick="calcular()">Calcular Lucro</button>
+
+    <div class="results" id="resultados">
+        <p><span>Custo (5 Diamantes):</span> <span class="val-custo"><span id="res-custo">0</span> $</span></p>
+        <p><span>Valor Bruto (1.000 Balls):</span> <span class="val-bruto"><span id="res-bruto">0</span> $</span></p>
+        <p><span>Taxa do Jogo (2%):</span> <span class="val-taxa">-<span id="res-taxa">0</span> $</span></p>
+        <p><span>Valor Líquido:</span> <span><span id="res-liquido">0</span> $</span></p>
+        
+        <p class="lucro-row"><span>📈 Lucro Líquido:</span> <span class="destaque"><span id="res-lucro">0</span> $</span></p>
+        <p><span>📊 Rendeu por Diamante:</span> <span style="color: var(--green);"><span id="res-equiv">0</span> $</span></p>
+    </div>
+</div>
+
+<script>
+    // Lógica Matemática
+    function calcular() {
+        let valDiamond = parseFloat(document.getElementById('diamond').value) || 0;
+        let valIdle = parseFloat(document.getElementById('idleball').value) || 0;
+
+        if(valDiamond === 0 || valIdle === 0) {
+            alert("⚠️ Preencha ambos os valores para calcular.");
+            return;
+        }
+
+        let custo = valDiamond * 5;
+        let bruto = valIdle * 1000;
+        let taxa = bruto * 0.02;
+        let liquido = bruto - taxa;
+        let lucro = liquido - custo;
+        let equiv = liquido / 5;
+
+        // Função para formatar com pontos
+        const formatar = (num) => num.toLocaleString('pt-BR');
+
+        document.getElementById('res-custo').innerText = formatar(custo);
+        document.getElementById('res-bruto').innerText = formatar(bruto);
+        document.getElementById('res-taxa').innerText = formatar(taxa);
+        document.getElementById('res-liquido').innerText = formatar(liquido);
+        document.getElementById('res-lucro').innerText = formatar(lucro);
+        document.getElementById('res-equiv').innerText = formatar(equiv);
+        
+        // Ativa a animação de mostrar os resultados
+        const painelResultados = document.getElementById('resultados');
+        painelResultados.classList.remove('show');
+        setTimeout(() => painelResultados.classList.add('show'), 50);
+    }
+
+    // Lógica OCR (CTRL+V e Arrastar Imagem)
+    const dropZone = document.getElementById('drop-zone');
+    const statusMsg = document.getElementById('status-ocr');
+    const inputDiamond = document.getElementById('diamond');
+
+    // Suporte para CTRL+V
+    window.addEventListener('paste', e => {
+        const file = e.clipboardData.files[0];
+        if(file && file.type.startsWith('image/')) processarImagem(file);
+    });
+
+    // Suporte para arrastar arquivo
+    dropZone.addEventListener('dragover', e => { 
+        e.preventDefault(); 
+        dropZone.classList.add('dragover'); 
+    });
+    dropZone.addEventListener('dragleave', e => { 
+        e.preventDefault(); 
+        dropZone.classList.remove('dragover'); 
+    });
+    dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        const file = e.dataTransfer.files[0];
+        if(file && file.type.startsWith('image/')) processarImagem(file);
+    });
+
+    function processarImagem(file) {
+        statusMsg.style.color = 'var(--gold)';
+        statusMsg.innerText = "⏳ Lendo a imagem, aguarde...";
+        
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            Tesseract.recognize(event.target.result, 'eng')
+            .then(({ data: { text } }) => {
+                let numerosEncontrados = text.replace(/[^0-9]/g, '');
+                if(numerosEncontrados) {
+                    statusMsg.style.color = 'var(--green)';
+                    statusMsg.innerText = "✅ Leitura concluída!";
+                    
+                    // Efeito visual no input para mostrar onde o valor foi colado
+                    inputDiamond.value = numerosEncontrados;
+                    inputDiamond.style.transform = "scale(1.05)";
+                    inputDiamond.style.borderColor = "var(--green)";
+                    setTimeout(() => {
+                        inputDiamond.style.transform = "scale(1)";
+                        inputDiamond.style.borderColor = "var(--border-color)";
+                    }, 500);
+
+                } else {
+                    statusMsg.style.color = '#f87171';
+                    statusMsg.innerText = "❌ Nenhum número encontrado. Tente um recorte melhor.";
+                }
+            }).catch(err => {
+                statusMsg.style.color = '#f87171';
+                statusMsg.innerText = "❌ Erro ao ler a imagem.";
+                console.error(err);
+            });
+        };
+        reader.readAsDataURL(file);
+    }
+</script>
+
+</body>
+</html>
